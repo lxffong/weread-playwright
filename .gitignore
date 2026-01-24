@@ -8,3 +8,17 @@ wheels/
 
 # Virtual environments
 .venv
+
+# WeRead project files
+data/
+.env
+
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# System
+.DS_Store
