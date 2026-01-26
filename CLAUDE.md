@@ -15,6 +15,8 @@ uv sync
 uv run playwright install chromium
 ```
 
+**Requirements**: Python >=3.12. Uses `uv` for dependency management (see pyproject.toml).
+
 ### Running the application
 ```bash
 # Run once immediately
@@ -39,7 +41,23 @@ docker-compose logs -f
 docker-compose down
 ```
 
-**Using Docker commands:**
+**Using the build script (supports multi-platform builds):**
+
+```bash
+# Default build (linux/amd64)
+./build.sh
+
+# Build for specific platform
+./build.sh --platform linux/arm64
+
+# Multi-platform build and push to registry
+./build.sh --platform linux/amd64,linux/arm64 --push
+
+# Custom name and tag
+./build.sh --name my-weread --tag v1.0
+```
+
+**Using Docker commands directly:**
 
 ```bash
 # Build image
@@ -108,6 +126,7 @@ The application follows a modular architecture with clear separation of concerns
 - Handles edge cases: book completion, retry prompts, subscription walls
 - Automatically jumps back to first chapter when book is finished
 - Uses random sleep intervals to simulate human reading behavior
+- **Important**: The `read()` method returns a tuple `(pages_read, actual_minutes)` - always track actual reading time, not configured duration
 
 **weread/notifier.py**: Multi-channel notification system
 - Email notifications with SMTP (SSL/TLS/auto-detection based on port)
@@ -122,6 +141,7 @@ The application follows a modular architecture with clear separation of concerns
 - Persists session data to `data/stats.json`
 - Tracks total sessions, pages read, and reading time
 - Records individual session details (date, book, pages, duration)
+- **Important**: Always use actual reading time (measured from start to end of session) for statistics, not the configured duration
 
 ### Data Flow
 
@@ -150,6 +170,8 @@ The application uses Playwright's async API with Chromium:
 - Handles page reloads on errors
 - Simulates human-like behavior with random timing
 
+**Async/Await Pattern**: All browser operations use async/await. The main entry point is `async def main()` which runs via `asyncio.run()`. Reading sessions are executed in `async def run_reading_session()`.
+
 ### File Storage
 
 All persistent data is stored in the `data/` directory:
@@ -157,6 +179,8 @@ All persistent data is stored in the `data/` directory:
 - `data/stats.json`: Reading session statistics
 - `data/qr_code.png`: Login QR code screenshot (temporary)
 - `weread.log`: Application logs
+
+**Important**: The `data/` directory is created automatically at startup if it doesn't exist. When using Docker, always mount this directory as a volume to persist data across container restarts.
 
 ## Email Configuration Notes
 
@@ -166,3 +190,33 @@ The email system auto-detects encryption based on port:
 - Can be overridden with `WEREAD_EMAIL_SECURITY` (ssl/tls/none/auto)
 
 Common SMTP configurations are documented in README.md for Gmail, QQ Mail, and 163 Mail.
+
+## Important Implementation Patterns
+
+### Measuring Actual vs. Configured Time
+When tracking reading time or any duration-based metrics, always measure elapsed time rather than using configured values:
+
+```python
+# Correct pattern
+start_time = datetime.now()
+# ... do work ...
+actual_minutes = (datetime.now() - start_time).total_seconds() / 60
+stats.add_session(book, pages, actual_minutes)
+
+# Incorrect pattern
+duration = config.get("reading.duration_minutes", 30)
+# ... do work ...
+stats.add_session(book, pages, duration)  # Always uses configured time, not actual
+```
+
+### Config Value Access
+The Config class uses dot notation for nested access:
+- `config.get("browser.headless")` returns nested values
+- Environment variables like `WEREAD_HEADLESS` map to `browser.headless`
+- Converters handle type coercion (e.g., string to boolean, comma-separated string to list)
+
+### Error Handling in Browser Automation
+- Always use `try/except` around Playwright operations
+- Use `await page.reload()` to recover from transient errors
+- Check element counts with `await locator.count() > 0` before acting
+- Use visibility checks with `await locator.is_visible()` for conditional logic
