@@ -6,6 +6,7 @@ WORKDIR /app
 # Copy requirements and install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN playwright install chrome --with-deps
 
 # Copy project files
 COPY weread/ ./weread/
@@ -16,6 +17,9 @@ RUN mkdir -p /app/data
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
+ENV TZ=Asia/Shanghai
+# Enable no-sandbox mode for Docker environment
+ENV WEREAD_NO_SANDBOX=true
 
 # Run the application
 CMD ["python", "main.py"]

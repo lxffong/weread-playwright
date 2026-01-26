@@ -8,7 +8,7 @@ class Config:
 
     def _default_config(self) -> dict:
         return {
-            "browser": {"headless": False},
+            "browser": {"headless": False, "no_sandbox": False},
             "cookies_file": "data/cookies.json",
             "reading": {
                 "book_ids": [],
@@ -40,6 +40,7 @@ class Config:
     def _apply_env_overrides(self):
         env_map = {
             "WEREAD_HEADLESS": ("browser.headless", lambda v: v.lower() == "true"),
+            "WEREAD_NO_SANDBOX": ("browser.no_sandbox", lambda v: v.lower() == "true"),
             "WEREAD_COOKIES_FILE": ("cookies_file", str),
             "WEREAD_BOOK_IDS": (
                 "reading.book_ids",
