@@ -39,6 +39,102 @@ uv run python main.py
 
 如果启用了邮件通知，二维码会自动发送到配置的邮箱。
 
+## Docker 部署
+
+### 使用 Docker Compose（推荐）
+
+```bash
+# 首先配置 .env 文件
+cp env.example .env
+# 编辑 .env 配置您的参数
+
+# 启动服务
+docker-compose up -d
+
+# 查看日志
+docker-compose logs -f
+
+# 停止服务
+docker-compose down
+```
+
+如果需要定时任务模式，编辑 `docker-compose.yml` 取消注释定时任务相关配置。
+
+### 使用 Docker 命令
+
+#### 构建镜像
+
+```bash
+docker build -t weread-playwright .
+```
+
+#### 运行容器
+
+**方式一：使用命令行参数**
+
+```bash
+docker run -d \
+  --name weread \
+  -v $(pwd)/data:/app/data \
+  -e WEREAD_HEADLESS=true \
+  -e WEREAD_BOOK_IDS=your_book_id \
+  -e WEREAD_DURATION=30 \
+  weread-playwright
+```
+
+**方式二：使用 .env 文件（推荐）**
+
+```bash
+# 首先配置 .env 文件
+cp env.example .env
+# 编辑 .env 配置您的参数
+
+# 运行容器
+docker run -d \
+  --name weread \
+  -v $(pwd)/data:/app/data \
+  --env-file .env \
+  weread-playwright
+```
+
+**方式三：定时任务模式**
+
+```bash
+docker run -d \
+  --name weread \
+  -v $(pwd)/data:/app/data \
+  --env-file .env \
+  -e WEREAD_SCHEDULE_ENABLED=true \
+  -e WEREAD_SCHEDULE_CRON="0 9 * * *" \
+  weread-playwright
+```
+
+### 查看日志
+
+```bash
+# 查看实时日志
+docker logs -f weread
+
+# 查看日志文件（挂载 data 目录后）
+tail -f data/weread.log
+```
+
+### 停止和删除容器
+
+```bash
+# 停止容器
+docker stop weread
+
+# 删除容器
+docker rm weread
+```
+
+### 注意事项
+
+- **必须挂载 data 目录**：使用 `-v $(pwd)/data:/app/data` 挂载 data 目录，以便保存 cookies 和统计数据
+- **首次登录**：首次运行时需要查看日志获取二维码路径，或启用邮件通知接收二维码
+- **定时任务**：如需定时运行，设置 `WEREAD_SCHEDULE_ENABLED=true` 和 `WEREAD_SCHEDULE_CRON`
+
 ## 邮件配置说明
 
 ### Gmail 配置示例

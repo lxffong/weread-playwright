@@ -1,11 +1,34 @@
-.venv/
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv
+venv/
+ENV/
+
+# Project files
+data/
+.env
+*.log
+
+# Development
 .git/
-.dockerignore
-Dockerfile
-docker-compose.yml
-*.pyc
-*.pyo
-*.pyd
-.db
-.pytest_cache/
+.gitignore
+.vscode/
+.idea/
+*.swp
+
+# Documentation (not needed in image)
+README.md
+CLAUDE.md
+
+# Build files
+uv.lock
+pyproject.toml
+
+# System
+.DS_Store

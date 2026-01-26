@@ -24,6 +24,58 @@ uv run python main.py
 uv run python main.py
 ```
 
+### Docker
+
+**Using Docker Compose (Recommended):**
+
+```bash
+# Start service
+docker-compose up -d
+
+# View logs
+docker-compose logs -f
+
+# Stop service
+docker-compose down
+```
+
+**Using Docker commands:**
+
+```bash
+# Build image
+docker build -t weread-playwright .
+
+# Run with environment variables
+docker run -d \
+  -v $(pwd)/data:/app/data \
+  -e WEREAD_HEADLESS=true \
+  -e WEREAD_BOOK_IDS=your_book_id \
+  -e WEREAD_DURATION=30 \
+  -e WEREAD_EMAIL_ENABLED=true \
+  -e WEREAD_EMAIL_SMTP=smtp.gmail.com \
+  -e WEREAD_EMAIL_PORT=587 \
+  -e WEREAD_EMAIL_FROM=your-email@gmail.com \
+  -e WEREAD_EMAIL_TO=recipient@gmail.com \
+  -e WEREAD_EMAIL_PASSWORD=your-password \
+  weread-playwright
+
+# Run with .env file
+docker run -d \
+  -v $(pwd)/data:/app/data \
+  --env-file .env \
+  weread-playwright
+
+# Run in scheduled mode
+docker run -d \
+  -v $(pwd)/data:/app/data \
+  --env-file .env \
+  -e WEREAD_SCHEDULE_ENABLED=true \
+  -e WEREAD_SCHEDULE_CRON="0 9 * * *" \
+  weread-playwright
+```
+
+**Important**: Mount the `data/` volume to persist cookies and statistics across container restarts.
+
 ### Configuration
 Copy `env.example` to `.env` and configure environment variables. The application uses environment variables to override default configuration.
 
