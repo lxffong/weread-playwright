@@ -5,10 +5,12 @@ services:
     restart: unless-stopped
     volumes:
       - ./data:/app/data
-    environment:
-      - WEREAD_HEADLESS=true
-      # 如果需要定时任务，取消下面两行的注释并注释掉上面的 WEREAD_HEADLESS
-      # - WEREAD_SCHEDULE_ENABLED=true
-      # - WEREAD_SCHEDULE_CRON=0 9 * * *
-      # - WEREAD_DURATION=66
-      # - WEREAD_BOOK_IDS=xxxx
+    env_file:
+      - .env
+    # environment:
+    #   - WEREAD_HEADLESS=true
+    # 如果需要定时任务，取消下面两行的注释并注释掉上面的 WEREAD_HEADLESS
+    # - WEREAD_SCHEDULE_ENABLED=true
+    # - WEREAD_SCHEDULE_CRON=0 9 * * *
+    # - WEREAD_DURATION=66
+    # - WEREAD_BOOK_IDS=xxxx
