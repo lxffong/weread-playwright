@@ -20,6 +20,8 @@ data/
 .vscode/
 .idea/
 *.swp
+.claude/settings.local.json
+
 
 # System
 .DS_Store

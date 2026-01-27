@@ -35,8 +35,7 @@ class Reader:
             self.logger.error(f"选择书籍失败: {e}")
             return None
 
-    async def read(self, page: Page, duration_minutes: float) -> tuple[int, float]:
-        pages_read = 0
+    async def read(self, page: Page, duration_minutes: float) -> int:
         start_time = datetime.now()
 
         try:
@@ -81,24 +80,17 @@ class Reader:
                 )
                 if await next_btn.count() > 0 and await next_btn.is_visible():
                     await next_btn.click()
-                    pages_read += 1
-                    if pages_read % 10 == 0:
-                        self.logger.info(f"已阅读 {pages_read} 页")
                     continue
 
                 # 按下箭头键翻页
                 await page.keyboard.press("ArrowDown")
-                pages_read += 1
-
-                if pages_read % 10 == 0:
-                    self.logger.info(f"已阅读 {pages_read} 页")
 
         except Exception as e:
             self.logger.error(f"阅读过程出错: {e}")
             await page.reload()
 
-        actual_minutes = (datetime.now() - start_time).total_seconds() / 60
-        return pages_read, actual_minutes
+        actual_minutes = int((datetime.now() - start_time).total_seconds() / 60)
+        return actual_minutes
 
     async def auto_read(self, page: Page) -> dict:
         duration = self.config.get("reading.duration_minutes", 30)
@@ -107,12 +99,11 @@ class Reader:
         if not book_name:
             return {"success": False, "message": "未找到书籍"}
 
-        pages_read, actual_minutes = await self.read(page, duration)
-        self.stats.add_session(book_name, pages_read, actual_minutes)
+        actual_minutes = await self.read(page, duration)
+        self.stats.add_session(book_name, actual_minutes)
 
         return {
             "success": True,
             "book": book_name,
-            "pages": pages_read,
             "minutes": actual_minutes,
         }

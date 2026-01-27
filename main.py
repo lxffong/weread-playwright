@@ -66,9 +66,8 @@ async def run_reading_session(config: Config, logger) -> None:
                 # 使用安全的字典访问
                 if result.get("success"):
                     book = result.get("book", "未知")
-                    pages = result.get("pages", 0)
                     minutes = result.get("minutes", 0)
-                    message = f"书籍: {book}\n页数: {pages}\n时长: {minutes}分钟\n{stats.get_summary()}"
+                    message = f"书籍: {book}\n时长: {minutes}分钟\n{stats.get_summary()}"
                     logger.info(f"阅读完成 - {message}")
                     notifier.send("WeRead 阅读完成", message)
                 else:
