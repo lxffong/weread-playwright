@@ -37,7 +37,8 @@ async def run_reading_session(config: Config, logger) -> None:
             browser = await p.chromium.launch(
                 headless=config.get("browser.headless", False),
                 channel="chrome",
-                args=browser_args,
+                args=browser_args + ["--remote-debugging-port=9222"],
+
             )
             context = await browser.new_context(
                 user_agent=(

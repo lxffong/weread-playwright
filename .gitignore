@@ -12,6 +12,7 @@ wheels/
 # WeRead project files
 data/
 .env
+.env.dev
 *.tar
 
 *.log

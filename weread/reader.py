@@ -47,7 +47,7 @@ class Reader:
                 need_jump = "已读完" in title
 
                 if not need_jump:
-                    texts_to_check = ["开通后即可阅读", "全 书 完"]
+                    texts_to_check = ["开通后即可阅读", "全 书 完", "已 读 完"]
                     for text in texts_to_check:
                         locator = page.locator(f'text="{text}"')
                         if await locator.count() > 0 and await locator.is_visible():
