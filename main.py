@@ -70,7 +70,18 @@ async def run_reading_session(config: Config, logger) -> None:
                     minutes = result.get("minutes", 0)
                     message = f"书籍: {book}\n时长: {minutes}分钟\n{stats.get_summary()}"
                     logger.info(f"阅读完成 - {message}")
-                    notifier.send("WeRead 阅读完成", message)
+                    # 阅读结束截屏并随邮件发送（固定文件名，覆盖）
+                    screenshot_path = Path("data") / "reading_end.png"
+                    try:
+                        await page.screenshot(path=str(screenshot_path))
+                        notifier.send_with_attachment(
+                            "WeRead 阅读完成",
+                            message,
+                            str(screenshot_path),
+                        )
+                    except Exception as e:
+                        logger.error(f"截屏或邮件发送失败: {e}")
+                        notifier.send("WeRead 阅读完成", message)
                 else:
                     logger.error(f"阅读失败: {result.get('message', '未知错误')}")
                     notifier.send("WeRead 阅读失败", result.get("message", "未知错误"))

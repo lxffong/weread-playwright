@@ -16,6 +16,12 @@ class Notifier:
             self._send_email(title, message)
         if self.config.get('notifications.bark.enabled'):
             self._send_bark(title, message)
+ 
+    def send_with_attachment(self, title: str, message: str, attachment_path: str):
+        if self.config.get('notifications.email.enabled'):
+            self.send_email_with_attachment(title, message, attachment_path)
+        if self.config.get('notifications.bark.enabled'):
+            self._send_bark(title, message)
 
     def _send_email(self, subject: str, body: str):
         try:
