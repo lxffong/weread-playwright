@@ -6,12 +6,28 @@ from typing import Optional
 from playwright.async_api import Page
 
 
+class AuthenticationRequiredError(Exception):
+    """阅读页面要求用户重新登录。"""
+
+
 class Reader:
     def __init__(self, config, logger, stats):
         self.config = config
         self.logger = logger
         self.stats = stats
         self.speed_map = {"slow": (5, 10), "medium": (3, 8), "fast": (1, 5)}
+
+    async def _authentication_required(self, page: Page) -> bool:
+        """判断当前页面是否已经跳回登录状态。"""
+        if "/web/login" in page.url.lower():
+            return True
+
+        login_link = page.locator('a:has-text("登录")')
+        return await login_link.count() > 0 and await login_link.first.is_visible()
+
+    async def _ensure_authenticated(self, page: Page) -> None:
+        if await self._authentication_required(page):
+            raise AuthenticationRequiredError("阅读认证已失效")
 
     async def select_book(self, page: Page) -> Optional[str]:
         try:
@@ -26,11 +42,14 @@ class Reader:
             self.logger.info(f"从配置的书籍中随机选择: {book_id}")
             await page.goto(book_url)
             await asyncio.sleep(2)
+            await self._ensure_authenticated(page)
 
             title = await page.title()
             self.logger.info(f"已打开书籍: {title}")
 
             return title
+        except AuthenticationRequiredError:
+            raise
         except Exception as e:
             self.logger.error(f"选择书籍失败: {e}")
             return None
@@ -41,6 +60,7 @@ class Reader:
         try:
             while (datetime.now() - start_time).total_seconds() < duration_minutes * 60:
                 await asyncio.sleep(random.uniform(5, 15))
+                await self._ensure_authenticated(page)
 
                 # 检查是否需要跳回第一章
                 title = await page.title()
@@ -85,6 +105,8 @@ class Reader:
                 # 按下箭头键翻页
                 await page.keyboard.press("ArrowDown")
 
+        except AuthenticationRequiredError:
+            raise
         except Exception as e:
             self.logger.error(f"阅读过程出错: {e}")
             await page.reload()

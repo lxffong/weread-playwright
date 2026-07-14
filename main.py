@@ -10,9 +10,35 @@ from weread.auth import Auth
 from weread.config import Config
 from weread.logger import setup_logger
 from weread.notifier import Notifier
-from weread.reader import Reader
+from weread.reader import AuthenticationRequiredError, Reader
 from weread.scheduler import Scheduler
 from weread.stats import Stats
+from weread.task_manager import ReadingTaskManager
+from weread.trigger_server import TriggerServer
+
+
+async def read_with_reauthentication(
+    page, context, reader: Reader, auth: Auth, config: Config, logger
+) -> dict:
+    """认证失效时重新登录，并重新发起完整的阅读任务。"""
+    retries_remaining = max(0, config.get("reading.auth_retry_count", 1))
+
+    while True:
+        try:
+            return await reader.auto_read(page)
+        except AuthenticationRequiredError:
+            if retries_remaining == 0:
+                logger.error("阅读认证失效，已达到重新发起次数上限")
+                return {"success": False, "message": "阅读认证失败，重新发起仍未成功"}
+
+            retries_remaining -= 1
+            logger.warning("阅读认证已失效，正在重新认证并发起阅读任务")
+            if not await auth.login_with_qr(page):
+                logger.error("重新认证失败")
+                return {"success": False, "message": "阅读认证失败，重新认证未成功"}
+
+            await auth.save_cookies(context)
+            logger.info("重新认证成功，重新发起阅读任务")
 
 
 async def run_reading_session(config: Config, logger) -> None:
@@ -62,7 +88,9 @@ async def run_reading_session(config: Config, logger) -> None:
 
                 await auth.save_cookies(context)
 
-                result = await reader.auto_read(page)
+                result = await read_with_reauthentication(
+                    page, context, reader, auth, config, logger
+                )
 
                 # 使用安全的字典访问
                 if result.get("success"):
@@ -105,52 +133,66 @@ async def main():
 
     logger.info("WeRead 自动阅读启动")
 
-    if config.get("schedule.enabled"):
+    manager = ReadingTaskManager(
+        lambda: run_reading_session(config, logger), logger
+    )
+    schedule_enabled = config.get("schedule.enabled")
+    trigger_enabled = config.get("trigger.enabled")
+    scheduler = None
+    trigger_server = None
+
+    if schedule_enabled:
         scheduler = Scheduler(config, logger)
         scheduler.add_job(
-            run_reading_session,
+            manager.trigger,
             config.get("schedule.cron"),
-            args=(config, logger)
         )
         scheduler.start()
         logger.info("定时任务模式，等待执行...")
 
-        # 创建一个 Event 用于优雅退出
-        stop_event = asyncio.Event()
+    if trigger_enabled:
+        trigger_server = TriggerServer(
+            manager,
+            config.get("trigger.host"),
+            config.get("trigger.port"),
+            logger,
+        )
+        await trigger_server.start()
 
-        # 获取当前事件循环
+    if schedule_enabled or trigger_enabled:
+        # 保持原有行为：未开启定时模式时，启动后立即阅读一次。
+        if not schedule_enabled:
+            manager.trigger()
+
+        stop_event = asyncio.Event()
         loop = asyncio.get_running_loop()
 
-        # 设置信号处理器（使用 asyncio 的方式）
         def signal_handler():
             logger.info("收到停止信号，准备退出...")
             stop_event.set()
 
-        # 注册信号处理（SIGINT 和 SIGTERM）
-        # 注意：Windows 不支持 SIGTERM，add_signal_handler 仅在 Unix 系统可用
         if sys.platform != "win32":
             for sig in (signal.SIGINT, signal.SIGTERM):
                 loop.add_signal_handler(sig, signal_handler)
 
         try:
-            # 等待停止信号
             await stop_event.wait()
         except KeyboardInterrupt:
-            # Windows 下的 Ctrl+C 处理
             logger.info("收到停止信号，准备退出...")
         finally:
-            # 移除信号处理器（仅 Unix）
             if sys.platform != "win32":
                 for sig in (signal.SIGINT, signal.SIGTERM):
                     loop.remove_signal_handler(sig)
-            # 确保调度器被正确关闭
-            logger.info("正在关闭调度器...")
-            scheduler.shutdown()
+
+            if trigger_server:
+                await trigger_server.close()
+            if scheduler:
+                logger.info("正在关闭调度器...")
+                scheduler.shutdown()
+            await manager.wait()
     else:
-        try:
-            await run_reading_session(config, logger)
-        except Exception as e:
-            logger.error(f"执行失败: {e}\n{traceback.format_exc()}")
+        manager.trigger()
+        await manager.wait()
 
     logger.info("WeRead 自动阅读结束")
 

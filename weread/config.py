@@ -20,8 +20,10 @@ class Config:
                 "turn_time_max": 1.5,
                 "duration_minutes": 30,
                 "loop_to_first": True,
+                "auth_retry_count": 1,
             },
             "schedule": {"enabled": False, "cron": "0 9 * * *"},
+            "trigger": {"enabled": False, "host": "127.0.0.1", "port": 8765},
             "notifications": {
                 "email": {
                     "enabled": False,
@@ -52,11 +54,18 @@ class Config:
             ),
             "WEREAD_SPEED": ("reading.speed", str),
             "WEREAD_DURATION": ("reading.duration_minutes", int),
+            "WEREAD_AUTH_RETRY_COUNT": ("reading.auth_retry_count", int),
             "WEREAD_SCHEDULE_ENABLED": (
                 "schedule.enabled",
                 lambda v: v.lower() == "true",
             ),
             "WEREAD_SCHEDULE_CRON": ("schedule.cron", str),
+            "WEREAD_TRIGGER_ENABLED": (
+                "trigger.enabled",
+                lambda v: v.lower() == "true",
+            ),
+            "WEREAD_TRIGGER_HOST": ("trigger.host", str),
+            "WEREAD_TRIGGER_PORT": ("trigger.port", int),
             "WEREAD_EMAIL_ENABLED": (
                 "notifications.email.enabled",
                 lambda v: v.lower() == "true",

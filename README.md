@@ -18,6 +18,8 @@ uv run playwright install chromium
 ```bash
 WEREAD_HEADLESS=false
 WEREAD_DURATION=30
+# 阅读认证失效后，重新认证并重新发起任务的次数（默认 1）
+WEREAD_AUTH_RETRY_COUNT=1
 WEREAD_BOOK_INDEX=0
 WEREAD_SPEED=medium
 WEREAD_SCHEDULE_ENABLED=false
@@ -35,9 +37,31 @@ uv run python main.py
 uv run python main.py
 ```
 
-首次运行会显示二维码，使用微信扫码登录。登录后会自动保存 cookies，下次运行无需重新登录。
+首次运行会显示二维码，使用微信扫码登录。登录后会自动保存 cookies，下次运行无需重新登录。阅读过程中如果认证失效，程序会重新发起扫码认证；认证成功后保存新 cookies，并重新开始本次阅读任务。
 
 如果启用了邮件通知，二维码会自动发送到配置的邮箱。
+
+### 主动触发阅读
+
+启用内置 HTTP 服务后，可以随时主动发起一次阅读任务：
+
+```bash
+WEREAD_TRIGGER_ENABLED=true
+WEREAD_TRIGGER_HOST=127.0.0.1
+WEREAD_TRIGGER_PORT=8765
+```
+
+```bash
+# 主动触发，返回 HTTP 202
+curl -X POST http://127.0.0.1:8765/trigger
+
+# 查询当前状态
+curl http://127.0.0.1:8765/status
+```
+
+如果阅读任务正在执行，首次触发会登记一个待执行任务，当前任务结束后立即运行。执行期间的更多触发会合并到该待执行任务，不会并行启动浏览器，也不会无限累积任务。
+
+Docker 使用时，将 `WEREAD_TRIGGER_HOST` 设置为 `0.0.0.0`，并仅向可信网络映射端口，例如 Compose 中使用 `127.0.0.1:8765:8765`。HTTP 服务默认关闭，且默认只监听本机。
 
 ## Docker 部署
 

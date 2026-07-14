@@ -8,6 +8,9 @@ services:
       - ./data:/app/data
     env_file:
       - .env
+    # 启用 HTTP 主动触发时，同时设置 WEREAD_TRIGGER_HOST=0.0.0.0
+    ports:
+      - "8765:8765"
     # environment:
     #   - WEREAD_HEADLESS=true
     # 如果需要定时任务，取消下面两行的注释并注释掉上面的 WEREAD_HEADLESS
