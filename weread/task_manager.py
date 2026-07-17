@@ -24,6 +24,10 @@ class ReadingTaskManager:
         self._runner = asyncio.create_task(self._run())
         return "started"
 
+    async def trigger_async(self) -> str:
+        """从异步调度器触发任务，确保在其事件循环中创建 Task。"""
+        return self.trigger()
+
     async def _run(self) -> None:
         try:
             while True:

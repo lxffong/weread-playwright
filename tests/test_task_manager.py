@@ -16,6 +16,15 @@ class ReadingTaskManagerTests(unittest.IsolatedAsyncioTestCase):
         run_task.assert_awaited_once()
         self.assertEqual(manager.status(), {"running": False, "pending": False})
 
+    async def test_async_trigger_starts_task_on_running_loop(self):
+        run_task = AsyncMock()
+        manager = ReadingTaskManager(run_task, Mock())
+
+        self.assertEqual(await manager.trigger_async(), "started")
+        await manager.wait()
+
+        run_task.assert_awaited_once()
+
     async def test_coalesces_triggers_while_running(self):
         release_first = asyncio.Event()
         calls = 0

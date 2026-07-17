@@ -144,7 +144,7 @@ async def main():
     if schedule_enabled:
         scheduler = Scheduler(config, logger)
         scheduler.add_job(
-            manager.trigger,
+            manager.trigger_async,
             config.get("schedule.cron"),
         )
         scheduler.start()
