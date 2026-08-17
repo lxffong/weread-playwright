@@ -34,7 +34,7 @@ class Auth:
         except Exception as e:
             self.logger.error(f"保存 cookies 失败: {e}")
 
-    async def login_with_qr(self, page: Page, timeout: int = 300) -> bool:
+    async def login_with_qr(self, page: Page, timeout: int = 120) -> bool:
         try:
             await page.goto("https://weread.qq.com")
 
