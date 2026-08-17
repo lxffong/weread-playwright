@@ -35,6 +35,7 @@ class TriggerServerTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertIn(b"202 Accepted", headers)
         self.assertEqual(body["state"], "started")
+        self.server.manager.run_task.assert_awaited_once_with(True)
 
     async def test_status_endpoint_reports_manager_state(self):
         headers, body = await self.request(

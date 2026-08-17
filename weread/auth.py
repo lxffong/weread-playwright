@@ -7,10 +7,15 @@ from playwright.async_api import BrowserContext, Page
 
 
 class Auth:
-    def __init__(self, cookies_file: str, logger, notifier=None):
+    def __init__(self, cookies_file: str, logger, notifier=None, qr_webhook=None):
         self.cookies_file = Path(cookies_file)
         self.logger = logger
         self.notifier = notifier
+        self.qr_webhook = qr_webhook
+
+    async def _notify_qr_webhook(self, qr_path: Path) -> None:
+        if self.qr_webhook:
+            await self.qr_webhook.notify(qr_path)
 
     async def load_cookies(self, context: BrowserContext) -> bool:
         if not self.cookies_file.exists():
@@ -47,6 +52,7 @@ class Auth:
 
                 # 使用更精确的定位策略查找二维码
                 qr_code_found = False
+                qr_path = self.cookies_file.parent / "qr_code.png"
 
                 # 优先查找二维码图片元素
                 try:
@@ -84,6 +90,7 @@ class Auth:
                             body="请使用微信扫描附件中的二维码登录 WeRead。",
                             attachment_path=str(qr_path)
                         )
+                    await self._notify_qr_webhook(qr_path)
                 else:
                     self.logger.info("未找到二维码相关元素，可能已经登录")
 
@@ -107,6 +114,7 @@ class Auth:
                         await asyncio.sleep(2)
                         await page.screenshot(path=str(qr_path))
                         self.logger.info("二维码已刷新")
+                        await self._notify_qr_webhook(qr_path)
                         max_retries -= 1
                         continue
 

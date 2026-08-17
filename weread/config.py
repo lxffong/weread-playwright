@@ -25,6 +25,12 @@ class Config:
             "schedule": {"enabled": False, "cron": "0 9 * * *"},
             "trigger": {"enabled": False, "host": "127.0.0.1", "port": 8765},
             "notifications": {
+                "webhook": {
+                    "enabled": False,
+                    "url": "",
+                    "secret": "",
+                    "timeout_seconds": 10,
+                },
                 "email": {
                     "enabled": False,
                     "smtp_server": "",
@@ -66,6 +72,22 @@ class Config:
             ),
             "WEREAD_TRIGGER_HOST": ("trigger.host", str),
             "WEREAD_TRIGGER_PORT": ("trigger.port", int),
+            "WEREAD_QR_WEBHOOK_ENABLED": (
+                "notifications.webhook.enabled",
+                lambda v: v.lower() == "true",
+            ),
+            "WEREAD_QR_WEBHOOK_URL": (
+                "notifications.webhook.url",
+                str,
+            ),
+            "WEREAD_QR_WEBHOOK_SECRET": (
+                "notifications.webhook.secret",
+                str,
+            ),
+            "WEREAD_QR_WEBHOOK_TIMEOUT": (
+                "notifications.webhook.timeout_seconds",
+                int,
+            ),
             "WEREAD_EMAIL_ENABLED": (
                 "notifications.email.enabled",
                 lambda v: v.lower() == "true",

@@ -61,6 +61,33 @@ curl http://127.0.0.1:8765/status
 
 如果阅读任务正在执行，首次触发会登记一个待执行任务，当前任务结束后立即运行。执行期间的更多触发会合并到该待执行任务，不会并行启动浏览器，也不会无限累积任务。
 
+### HTTP 触发时发送登录二维码到 Hermes
+
+当阅读任务由 `POST /trigger` 发起、且登录流程获取到二维码时，可以将二维码通过 Hermes Webhook 发送到 Weixin。定时任务和启动时自动任务不会发送二维码。
+
+在 `.env` 中配置：
+
+```bash
+WEREAD_QR_WEBHOOK_ENABLED=true
+WEREAD_QR_WEBHOOK_URL=http://host.docker.internal:8644/webhooks/weread-login-qr
+WEREAD_QR_WEBHOOK_SECRET=与 Hermes 路由相同的 Secret
+WEREAD_QR_WEBHOOK_TIMEOUT=10
+```
+
+Hermes 路由示例：
+
+```bash
+hermes webhook subscribe weread-login-qr \
+  --events "weread_login_qr" \
+  --script "weread-qr.py" \
+  --prompt "MEDIA:{local_path}" \
+  --deliver weixin \
+  --deliver-only \
+  --secret "与 .env 相同的 Secret"
+```
+
+二维码以 JSON Base64 传输，并由 Hermes 脚本解码后作为原生图片发送。Docker Compose 通过 `extra_hosts` 配置 `host.docker.internal:host-gateway`，让容器可以访问宿主机上的 Hermes Webhook。
+
 Docker 使用时，将 `WEREAD_TRIGGER_HOST` 设置为 `0.0.0.0`，并仅向可信网络映射端口，例如 Compose 中使用 `127.0.0.1:8765:8765`。HTTP 服务默认关闭，且默认只监听本机。
 
 ## Docker 部署

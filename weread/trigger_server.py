@@ -37,7 +37,7 @@ class TriggerServer:
                     break
 
             if method == "POST" and path == "/trigger":
-                state = self.manager.trigger()
+                state = self.manager.trigger(http_triggered=True)
                 messages = {
                     "started": "阅读任务已启动",
                     "queued": "任务正在执行，已登记一次待执行任务",

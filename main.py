@@ -10,6 +10,7 @@ from weread.auth import Auth
 from weread.config import Config
 from weread.logger import setup_logger
 from weread.notifier import Notifier
+from weread.qr_webhook import QrWebhookNotifier
 from weread.reader import AuthenticationRequiredError, Reader
 from weread.scheduler import Scheduler
 from weread.stats import Stats
@@ -41,7 +42,9 @@ async def read_with_reauthentication(
             logger.info("重新认证成功，重新发起阅读任务")
 
 
-async def run_reading_session(config: Config, logger) -> None:
+async def run_reading_session(
+    config: Config, logger, http_triggered: bool = False
+) -> None:
     """执行一次阅读会话"""
     try:
         logger.info("===== 开始执行阅读任务 =====")
@@ -49,7 +52,12 @@ async def run_reading_session(config: Config, logger) -> None:
         logger.info(f"配置信息: headless={config.get('browser.headless')}, no_sandbox={config.get('browser.no_sandbox')}")
 
         notifier = Notifier(config, logger)
-        auth = Auth(config.get("cookies_file"), logger, notifier)
+        qr_webhook = (
+            QrWebhookNotifier.from_config(config, logger)
+            if http_triggered
+            else None
+        )
+        auth = Auth(config.get("cookies_file"), logger, notifier, qr_webhook)
         stats = Stats(config.get("stats_file"))
         reader = Reader(config, logger, stats)
 
@@ -134,7 +142,10 @@ async def main():
     logger.info("WeRead 自动阅读启动")
 
     manager = ReadingTaskManager(
-        lambda: run_reading_session(config, logger), logger
+        lambda http_triggered: run_reading_session(
+            config, logger, http_triggered
+        ),
+        logger,
     )
     schedule_enabled = config.get("schedule.enabled")
     trigger_enabled = config.get("trigger.enabled")

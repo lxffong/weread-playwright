@@ -29,7 +29,7 @@ class ReadingTaskManagerTests(unittest.IsolatedAsyncioTestCase):
         release_first = asyncio.Event()
         calls = 0
 
-        async def run_task():
+        async def run_task(http_triggered):
             nonlocal calls
             calls += 1
             if calls == 1:
@@ -45,6 +45,15 @@ class ReadingTaskManagerTests(unittest.IsolatedAsyncioTestCase):
         await manager.wait()
 
         self.assertEqual(calls, 2)
+
+    async def test_preserves_http_trigger_source_for_the_task(self):
+        run_task = AsyncMock()
+        manager = ReadingTaskManager(run_task, Mock())
+
+        self.assertEqual(manager.trigger(http_triggered=True), "started")
+        await manager.wait()
+
+        run_task.assert_awaited_once_with(True)
 
     async def test_does_not_lose_trigger_before_runner_starts(self):
         run_task = AsyncMock()
